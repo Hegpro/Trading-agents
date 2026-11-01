@@ -1,0 +1,37 @@
+{
+  "ticker": "AAPL",
+  "requested_date": "2025-06-30",
+  "last_bar_used": "2025-06-30",
+  "bars_available": 397,
+  "window": 120,
+  "indicators": {
+    "Close": 205.1699981689453,
+    "SMA50": 202.8402001953125,
+    "SMA200": 223.25874992370606,
+    "EMA12": 201.09905338896226,
+    "EMA26": 201.41360077004157,
+    "MACD": -0.3145473810793078,
+    "MACD_Signal": -1.021510280601009,
+    "MACD_Hist": 0.7069628995217012,
+    "RSI14": 56.8068874034167,
+    "SMA20": 200.65699996948243,
+    "Upper_BB": 205.56615998305247,
+    "Lower_BB": 195.74783995591238,
+    "ATR14": 4.469357351034145
+  },
+  "signals": {
+    "trend": "Bearish: SMA50 below SMA200",
+    "price_vs_sma50": "Above SMA50",
+    "macd": "Bullish momentum (histogram > 0)",
+    "rsi": "Neutral (RSI 56.8)",
+    "bollinger_pct_b": 0.96,
+    "bollinger": "Close inside bands",
+    "atr_pct": 2.18,
+    "resistance_20d": 206.24000549316406,
+    "support_20d": 195.07000732421875,
+    "window_high": 250.0,
+    "window_low": 169.2100067138672
+  },
+  "vote_score": 0,
+  "overall_bias": "Neutral / Mixed"
+}
