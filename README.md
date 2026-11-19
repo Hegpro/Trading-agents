@@ -1,16 +1,18 @@
 # Trading Analysis Algorithms
 
-This repository contains two standalone market-analysis algorithms for evaluating a stock from different perspectives:
+This repository contains three standalone market-analysis algorithms for evaluating a stock from different perspectives:
 
 1. Technical Analysis Algorithm
 2. Fundamental Analysis Algorithm
+3. Social Sentiment Algorithm
 
-Both are designed to work on a specified evaluation date and produce structured outputs (JSON, Markdown, CSV, and optionally charts).
+All three are designed to work on a specified evaluation date and produce structured outputs (JSON, Markdown, CSV, and where applicable, charts).
 
 ## Repository contents
 
 - `alg1_technical_analysis.py` — Technical indicator and price-pattern extraction
 - `alg2_fundamental_analysis.py` — Fundamental valuation and SEC EDGAR analysis
+- `alg3_social_sentiment.py` — Multi-source social sentiment and retail-discussion analysis
 - `outputs/` — Generated reports and analysis artifacts
 
 ---
@@ -394,18 +396,190 @@ It is complementary to the technical algorithm and provides a company-level, fun
 
 ---
 
-# How the two algorithms work together
+## Algorithm 3: Multi-Source Social Sentiment & Screening
 
-The two algorithms are designed to be complementary:
+File: `alg3_social_sentiment.py`
+
+## Purpose
+
+This algorithm evaluates market sentiment from retail and financial social streams as of a selected evaluation date. It answers questions such as:
+
+- What is the dominant bullish or bearish crowd bias?
+- Are posts about the target ticker or irrelevant noise?
+- Are the strongest opinions supported by engagement?
+- How much weight should be given to recent posts versus older posts?
+- What is the overall sentiment view for the selected date?
+
+## Input
+
+The script accepts:
+
+- `--ticker` : stock ticker, e.g. `AAPL`
+- `--date` : evaluation date in `YYYY-MM-DD`
+- `--window` : lookback window in calendar days (default `7`)
+- `--theta` : minimum entity-relevance threshold (default `0.4`)
+- `--csv` : optional local social-post CSV instead of live feeds
+- `--llm` : optional LLM narrative generation using Anthropic if `ANTHROPIC_API_KEY` is set
+- `--outdir` : output folder (default `outputs`)
+
+## Data source
+
+By default, the algorithm attempts to gather:
+
+- Reddit search results
+- Yahoo Finance news headlines
+
+If live data is unavailable or no posts are found in the point-in-time window, it uses a deterministic synthetic fallback stream for offline demonstrations. A custom CSV can be supplied instead with columns such as:
+
+- `timestamp` (or `date`, `datetime`, `created_utc`)
+- `source`
+- `text` (or `title`, `body`, `headline`, `content`)
+- `upvotes`
+- `comments`
+- `author` (optional)
+
+The script applies a strict point-in-time filter and keeps only posts in `[evaluation_date - window, evaluation_date]`.
+
+## Workflow
+
+### Step 1: Collect and normalize posts
+
+The algorithm fetches or reads posts and converts them into a consistent schema containing:
+
+- timestamp
+- source
+- text
+- upvote count
+- comment count
+- author
+
+Timestamps are normalized and sorted before screening.
+
+### Step 2: Screen spam, bots, and irrelevant posts
+
+The script rejects posts that:
+
+- are too short
+- match known spam or promotion patterns
+- appear to come from bot-like accounts promoting pump schemes
+- do not meet the target-ticker relevance threshold
+
+Entity relevance begins with ticker mentions and is boosted when the text also contains financial context such as earnings, valuation, calls, puts, growth, or guidance.
+
+### Step 3: Classify polarity
+
+Each retained post receives a polarity score in `[-1.0, +1.0]` using a financial and retail sentiment lexicon:
+
+- bullish terms increase polarity
+- bearish terms decrease polarity
+- negation terms reverse the sentiment weight
+- `tanh(raw_score / 2.2)` smooths the result into the final range
+
+Post polarity is classified as:
+
+- Bullish: polarity greater than `+0.1`
+- Bearish: polarity less than `-0.1`
+- Neutral: polarity between `-0.1` and `+0.1`
+
+### Step 4: Apply engagement and recency weighting
+
+The weight of a validated post is:
+
+`weight = log(1 + upvotes + comments) * exp(-lambda * age_days)`
+
+where `lambda` is `0.35`. This gives more influence to:
+
+- highly engaged posts
+- recent posts
+
+The composite crowd polarity score is:
+
+`P_score = sum(polarity * weight) / sum(weight)`
+
+It is also constrained to `[-1.0, +1.0]`:
+
+- `P_score >= 0.20` → Bullish
+- `P_score <= -0.20` → Bearish
+- otherwise → Neutral / Mixed
+
+### Step 5: Generate the report
+
+The script ranks validated posts by weight and optionally calls an Anthropic model for narrative synthesis. The LLM receives only the computed report metrics and posts; it does not replace or recompute the score.
+
+## Output files
+
+The script writes output to the selected out directory (default `outputs/`):
+
+- `<TICKER>_YYYY-MM-DD_sentiment.json`
+- `<TICKER>_YYYY-MM-DD_sentiment.md`
+- `<TICKER>_YYYY-MM-DD_sentiment.png`
+- `<TICKER>_YYYY-MM-DD_sentiment_posts.csv`
+
+The JSON report includes:
+
+- ticker and evaluation date
+- lookback window and relevance threshold
+- raw, validated, and discarded post counts
+- bullish, bearish, and neutral post counts
+- composite polarity score and overall bias
+- total engagement-recency weight
+- top weighted posts
+- optional LLM narrative
+
+## Example usage
+
+### Default live feeds and fallback stream
+
+```bash
+python alg3_social_sentiment.py --ticker AAPL --date 2025-06-30
+```
+
+### Custom lookback and relevance threshold
+
+```bash
+python alg3_social_sentiment.py --ticker NVDA --date 2025-06-30 --window 7 --theta 0.4
+```
+
+### Use a CSV file
+
+```bash
+python alg3_social_sentiment.py --ticker TCS --date 2025-06-30 --csv my_social_stream.csv
+```
+
+### With LLM narrative
+
+```bash
+export ANTHROPIC_API_KEY="your_key_here"
+python alg3_social_sentiment.py --ticker AAPL --date 2025-06-30 --llm
+```
+
+## Technical summary
+
+This algorithm is best suited for:
+
+- social and retail crowd-sentiment screening
+- spam and bot filtering
+- engagement-weighted sentiment aggregation
+- comparing how different social sources contribute to crowd bias
+
+Lexicon-based polarity is not a substitute for source verification or financial analysis. It should be treated as a sentiment signal rather than a standalone trading recommendation.
+
+---
+
+# How the three algorithms work together
+
+The three algorithms are designed to be complementary:
 
 - Technical analysis focuses on price behavior, momentum, and short-term trading signals.
 - Fundamental analysis focuses on company quality, valuation, and accounting-based health.
+- Social sentiment analysis focuses on the direction and concentration of public discussion.
 
 A practical workflow is:
 
 1. Run the technical algorithm to assess trend and momentum.
 2. Run the fundamental algorithm to assess valuation and business quality.
-3. Compare outputs to form a broader investment view.
+3. Run the sentiment algorithm to assess crowd bias and discussion quality.
+4. Compare outputs to form a broader investment view.
 
 In a full research workflow, the technical and fundamental views can be combined to decide whether a setup is:
 
@@ -431,15 +605,23 @@ export SEC_USER_AGENT="Pratham yourname@college.edu"
 python alg2_fundamental_analysis.py --ticker AAPL --date 2025-06-30
 ```
 
+## Social sentiment analysis
+
+```bash
+python alg3_social_sentiment.py --ticker AAPL --date 2025-06-30 --window 7
+```
+
 ---
 
 # Notes and assumptions
 
-- Both scripts are built to be date-aware and prevent look-ahead leakage.
+- All scripts are built to be date-aware and prevent look-ahead leakage.
 - The technical model uses data available up to the selected date only.
 - The fundamental model relies on SEC filings and XBRL structured values available as of the selected date.
+- The social sentiment model uses posts from only the selected lookback window ending on the evaluation date.
 - LLM output is optional and only runs when the Anthropic API key is available.
 - The SEC model requires a valid `SEC_USER_AGENT` value to comply with SEC access rules.
+- Social sentiment uses live Reddit and Yahoo Finance news when available, with a synthetic fallback stream when live data cannot be retrieved.
 - If internet access or official data sources are unavailable, the fundamental analysis may fail or require offline JSON inputs.
 
-This README covers the key logic, data pipeline, mathematical/financial rules, and operational usage for both algorithms in this project.
+This README covers the key logic, data pipeline, mathematical/financial rules, and operational usage for all algorithms in this project.
