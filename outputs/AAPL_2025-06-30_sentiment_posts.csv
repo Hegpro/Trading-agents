@@ -1,0 +1,7 @@
+timestamp,source,author,text,upvotes,comments,relevance,polarity,engagement,decay,weight,weighted_polarity
+2025-06-25 03:08:49.939734190,Reddit/r/wallstreetbets,value_ape,"Loaded up on $AAPL shares today, undervalued relative to sector peers.",336,93,1.0,0.5305,6.0638,0.1282,0.7774,0.4125
+2025-06-25 04:47:48.443224777,StockTwits,chart_watcher,"$AAPL looking overvalued here, watching for potential pullback and profit taking.",25,19,0.8,-0.2234,3.8067,0.1313,0.4999,-0.1117
+2025-06-28 00:10:18.604724620,StockTwits,alpha_hunter,$AAPL breakout above resistance! Buying calls for next week rally.,35,8,1.0,0.957,3.7842,0.3508,1.3276,1.2705
+2025-06-28 03:00:02.756516298,Reddit/r/stocks,bear_fund,Short sellers increasing puts on $AAPL ahead of regulatory review.,101,53,1.0,-0.6214,5.0434,0.3656,1.8438,-1.1458
+2025-06-28 12:47:52.328378853,StockTwits,flow_tracker,$AAPL institutional accumulation remains strong despite short-term volatility.,63,10,0.8,0.0,4.3041,0.4217,1.8152,0.0
+2025-06-28 20:07:36.120459893,Reddit/r/stocks,quant_trader99,$AAPL earnings beat expectations with strong margin expansion and bullish guidance.,155,42,1.0,0.9051,5.2883,0.4693,2.4819,2.2465
